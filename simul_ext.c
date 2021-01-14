@@ -177,17 +177,17 @@ int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *e
 		return -1;
 	}
 	
- 	ext_bytemaps->bmap_inodos[directorio[p2].dir_inodo]=0;
+ 	ext_bytemaps->bmap_inodos[p2]=0;					// eliminamos inodo de la entrada de bytemaps
 	
 	for(j=0; j< MAX_NUMS_BLOQUE_INODO && inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque !=0; j++){		// bytemaps de bloques 
-		if(inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[x] != NULL_BLOQUE){
+		if(inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j] != NULL_BLOQUE){
 			aux2=inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j]; 
-		//	ext_bytemaps->bmap_bloques[aux2]=0;									// peta
+			ext_bytemaps->bmap_bloques[aux2]=NULL;								 
 			inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j]=5;	
 		}
 	}
-	strcpy(directorio[p2].dir_nfich,"");
-	directorio[p2].dir_inodo=5;								// peta
+	strcpy(directorio[p2].dir_nfich,"");				
+	directorio[p2].dir_inodo=NULL;							 
 	inodos->blq_inodos[directorio[p2].dir_inodo].size_fichero= 0;
 
 	return 0;
@@ -294,4 +294,3 @@ int main() {
 			} 
 	}
 }
- 
