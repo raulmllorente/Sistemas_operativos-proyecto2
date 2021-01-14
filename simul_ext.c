@@ -66,7 +66,7 @@ void Directorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos) {			// 20 f
 	int x, y;
 
 	for (x = 1;x < MAX_FICHEROS ; x++) {		
-		if(directorio[x].dir_inodo != NULL_INODO){// hasta 0xffff para evitar basura
+		if(directorio[x].dir_nfich != NULL && directorio[x].dir_inodo != NULL_INODO){ 
 			printf("%s \t", directorio[x].dir_nfich);
 			printf(" tamaño: %d \t", inodos->blq_inodos[directorio[x].dir_inodo].size_fichero);
 			printf(" inodo: %d \t", directorio[x].dir_inodo);
@@ -119,12 +119,17 @@ int Imprimir(EXT_ENTRADA_DIR* directorio, EXT_BLQ_INODOS* inodos, EXT_DATOS* mem
 	return 0;
 }
 
+
+
 int Copiar(EXT_ENTRADA_DIR* directorio, EXT_BLQ_INODOS* inodos, EXT_BYTE_MAPS* ext_bytemaps, EXT_SIMPLE_SUPERBLOCK* ext_superblock, EXT_DATOS* memdatos, char* nombreorigen, char* nombredestino, FILE* fich) {
 	int p1 = 0;
 	int p2 = 0;
-	int x, j, w,t ;
+	int x, j, w,t;
 	int aux;
-	
+	unsigned int tam=0;
+	int fichelb=0; 
+	int h; 
+	int i=0;
 	p1 = BuscaFich(directorio, inodos, nombreorigen);
 	p2 = BuscaFich(directorio, inodos, nombredestino);
 
@@ -138,29 +143,36 @@ int Copiar(EXT_ENTRADA_DIR* directorio, EXT_BLQ_INODOS* inodos, EXT_BYTE_MAPS* e
 	}
 	
  
-	aux=inodos->blq_inodos[directorio[x].dir_inodo].i_nbloque[0]; // cogemos el primer bloque ocupado
-	
-	
-	for (x = 1; x < sizeof(directorio); x++) {			// ver si es dsp del fichero anterior o no
-		if (directorio[x].dir_nfich == NULL) {															// cambiar
-			strcpy(directorio[x].dir_nfich, nombredestino);			// copiamos nombre en el array de 
-			inodos->blq_inodos[directorio[x].dir_inodo].size_fichero = inodos->blq_inodos[directorio[p1].dir_inodo].size_fichero;
-			for(j=p2 ; j< MAX_INODOS; j++){							// j = entrada indo fichero viejo 
-				if(ext_bytemaps->bmap_inodos[j]==0){
-					directorio[x].dir_inodo= j;			// guardamos siguiente inodo
-					ext_bytemaps->bmap_inodos[j]=1;
-				}
-			}
-			for(w=aux; w< MAX_BLOQUES_PARTICION; w++){				// empiza por el primer bloq ocupado 
-				if(ext_bytemaps->bmap_bloques[w] == 0){
-					ext_bytemaps->bmap_bloques[w]=1;
-					inodos->blq_inodos[directorio[x].dir_inodo].i_nbloque[w];		// añdir los datos a los bloques correspondientes
-				}
-			}
+	aux=inodos->blq_inodos[directorio[p1].dir_inodo].i_nbloque[0]; 	// cogemos el primer bloque ocupado
+	tam=inodos->blq_inodos[directorio[p1].dir_inodo].size_fichero;
+
+	for (t = 1 ; t < MAX_FICHEROS; t++) {				// primer fichero vacio
+		if(directorio[t].dir_nfich != NULL && directorio[t].dir_inodo != NULL_INODO) {
+		} else{
+			fichelb=t;
+		 	break;
 		}
-	}
+	}		
+ 	
+ 
+	for(j= directorio[p1].dir_inodo; j< MAX_INODOS; j++){						 
+		if(ext_bytemaps->bmap_inodos[j]==0){
+			directorio[fichelb].dir_inodo= j;			// guardamos siguiente inodo libre 
+			ext_bytemaps->bmap_inodos[j]=1;	 
+			break;	
+		}  
+	}  
 	
-	
+	for(w=aux; w< MAX_BLOQUES_PARTICION ; w++){				// empiza por el primer bloq ocupado 
+		if(ext_bytemaps->bmap_bloques[w] == 0 ){
+			ext_bytemaps->bmap_bloques[w]=1;
+			inodos->blq_inodos[directorio[fichelb].dir_inodo].i_nbloque[0]=w+1;		// añdir los datos a los bloques correspondientes
+ 			break;
+		}
+	} 
+	  
+	strcpy(directorio[fichelb].dir_nfich, nombredestino);			 
+ 	inodos->blq_inodos[directorio[fichelb].dir_inodo].size_fichero=tam;
 	return 0;
 }
 
@@ -177,18 +189,18 @@ int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *e
 		return -1;
 	}
 	
- 	ext_bytemaps->bmap_inodos[p2]=0;					// eliminamos inodo de la entrada de bytemaps
+ 	ext_bytemaps->bmap_inodos[p2]=NULL;					// eliminamos inodo de la entrada de bytemaps
 	
 	for(j=0; j< MAX_NUMS_BLOQUE_INODO && inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque !=0; j++){		// bytemaps de bloques 
 		if(inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j] != NULL_BLOQUE){
 			aux2=inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j]; 
 			ext_bytemaps->bmap_bloques[aux2]=NULL;								 
-			inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j]=5;	
+			inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j]=NULL_BLOQUE;	
 		}
 	}
-	strcpy(directorio[p2].dir_nfich,"");				
+	*directorio[p2].dir_nfich=NULL;
 	directorio[p2].dir_inodo=NULL;							 
-	inodos->blq_inodos[directorio[p2].dir_inodo].size_fichero= 0;
+	inodos->blq_inodos[directorio[p2].dir_inodo].size_fichero= NULL;
 
 	return 0;
 }
@@ -287,7 +299,7 @@ int main() {
 	            //GrabarDatos(&memdatos,fent);
 	            fclose(fent);
 	       	    return 0;
-	        }													// grabar datos despues de metodos modificadores
+	        }											
 			else{
 				printf("ERROR: Comando ilegal [info, bytemaps, dir, rename, imprimir, remove, copy, salir]\n");
 				continue;
