@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -29,18 +28,13 @@ void GrabarDatos(EXT_DATOS *memdatos, FILE *fich);
 
 int  BuscaFich(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombre){
 	int x;
-	for (x = 1; x < sizeof(directorio); x++) {
-		if (strcmp(nombre, directorio[x].dir_nfich) == 0) {
-			return 1;
-		}
-		else if (strcmp(nombre, directorio[x].dir_nfich)!=0) {
-			return 	0;
-		}
-		else {
-			return x;
+	int p=0;
+	for (x = 1; x <= sizeof(directorio); x++) {
+		if (strcmp(nombre,directorio[x].dir_nfich)==0) {
+			p=x;
 		}
 	} 
-
+	return p;
 }
 
 void LeeSuperBloque(EXT_SIMPLE_SUPERBLOCK *psup){
@@ -82,76 +76,101 @@ void Directorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos) {			// 20 f
 	}
 }
 
-int Renombrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombreantiguo, char *nombrenuevo) {
-	int p1, p2;
-	int x,y;
+
+int Renombrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombreantiguo, char *nombrenuevo){
+	int p1=BuscaFich(directorio, inodos,nombreantiguo);
+	int p2=BuscaFich(directorio, inodos,nombrenuevo);
+
+	if(p1==0){		  
+		printf("ERROR: Fichero %s no encontrado\n", nombreantiguo);
+		return -1;
+	}
 	
-	p2 = BuscaFich(directorio, inodos, nombreantiguo);
-	p1 = BuscaFich(directorio, inodos, nombrenuevo);
-
-	if (p2 == 0) {
-		printf("\n ERROR: Fichero %s no encontrado", nombreantiguo);
+	if(p2!=0){		 
+		printf("ERROR: El fichero  %s ya existe \n", nombrenuevo);
+		return -1;
 	}
-	else {
-		if (p1 == 0) {
-			printf("ERROR: El fichero %s ya existe \n", nombrenuevo);
-		}
-		else {
-			strcpy(directorio->dir_nfich, nombrenuevo);
-		}
+		
+	strcpy(directorio[p1].dir_nfich, nombrenuevo);
+	return 0; 
+}
+
+
+int Imprimir(EXT_ENTRADA_DIR* directorio, EXT_BLQ_INODOS* inodos, EXT_DATOS* memdatos, char* nombre) {
+	int p1 = 0;
+	int x;
+
+	char texto[MAX_NUMS_BLOQUE_INODO];
+	p1 = BuscaFich(directorio, inodos, nombre);
+
+	if (p1 == 0) {
+		printf("ERROR: Fichero %s no encontrado\n", nombre);
+		return -1;
+	}
+ 
+	for (x = 0; x < MAX_NUMS_BLOQUE_INODO && inodos->blq_inodos[directorio[p1].dir_inodo].i_nbloque[x] != 0xffff; x++) {
+						// añadir los datos 
 	}
 
-	printf("\n");
+	memcpy(&texto[x], "\0", 1);
+	puts(texto);
 	
 	return 0;
 }
 
-int Imprimir(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_DATOS *memdatos, char *nombre) {
-	/*
-	int p1;
-	int x,y,bloque;
-	int z;
-	
-	p1 = BuscaFich(directorio, inodos, nombre,z);
-
-	if (p1 == 1) {							// imprimir datos 
-		for(x=0 ; x< MAX_NUMS_BLOQUE_INODO; x++){
-			bloque=inodos->blq_inodos[directorio[z].dir_inodo].i_nbloque[x];
-			for(y=0 ;sizeof(datos[bloque].dato[y]]; y++){
-				printf("%c", datos[bloque]dato[y]);	
-			}
-		}
-	}
-	else {
-		printf("\n ERROR: Fichero %s no encontrado", nombre);
-	}
-	return 0;
-	*/
-}
-
-int Copiar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *ext_bytemaps, EXT_SIMPLE_SUPERBLOCK *ext_superblock, EXT_DATOS *memdatos, char *nombreorigen, char *nombredestino,  FILE *fich) {
-	int p1;
-	int p2;
+int Copiar(EXT_ENTRADA_DIR* directorio, EXT_BLQ_INODOS* inodos, EXT_BYTE_MAPS* ext_bytemaps, EXT_SIMPLE_SUPERBLOCK* ext_superblock, EXT_DATOS* memdatos, char* nombreorigen, char* nombredestino, FILE* fich) {
+	int p1 = 0;
+	int p2 = 0;
+	int x, j, w;
 
 	p1 = BuscaFich(directorio, inodos, nombreorigen);
+	p2 = BuscaFich(directorio, inodos, nombredestino);
 
-	if (p1 == 1) {							// copiar
-
-	}
-	else {
+	if (p1 == 0) {
 		printf("\n ERROR: Fichero %s no encontrado", nombreorigen);
+		return -1;
+	}
+	if (p2 != 0) {
+		printf("ERROR: El fichero  %s ya existe \n", nombredestino);
+		return -1;
+	}
+
+	for (x = 1; x < sizeof(directorio); x++) {
+		if (directorio[x].dir_nfich != '\0') {
+			strcpy(directorio[x].dir_nfich, nombredestino);			// copiamos nombre
+		}
+	}
+
+	for (w = directorio[p1].dir_inodo; w < MAX_INODOS; w++) {
+		if (ext_bytemaps->bmap_inodos[w] == 0) {
+			directorio[x].dir_inodo = w;
+			inodos->blq_inodos[directorio[x].dir_inodo].size_fichero = inodos->blq_inodos[directorio[p1].dir_inodo].size_fichero;
+		}
 	}
 	return 0;
 }
 
+
 int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *ext_bytemaps, EXT_SIMPLE_SUPERBLOCK *ext_superblock, char *nombre,  FILE *fich){
-	int num_fichero, aux, x;
-	 
-/*	aux= directorio[num_fichero].dir_inodo;
-	strcpy(directorio[num_fichero].dir_nfich,"");
-	directorio[num_fichero].dir_inodo=0xffff;
-	inodos->blq_inodos[aux].size_fichero=0;
-	// vaciar bloques 0xffff*/
+	int p2=BuscaFich(directorio, inodos,nombre);
+	int x,j;
+	int w=0;
+	
+	if(p2==0){
+		printf("\n ERROR: Fichero %s no encontrado", nombre);	
+		return -1;
+	}
+																						// MODIFICAR
+	ext_bytemaps->bmap_inodos[directorio[p2].dir_inodo]=0;
+	for(j=0; j<MAX_NUMS_BLOQUE_INODO && inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[x] != 0xffff ; j++){		// bytemaps de bloques 
+		w=inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j]; 
+		ext_bytemaps->bmap_bloques[w]=0;		
+		inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j]=0xffff;								
+	}
+	strcpy(&directorio[p2].dir_nfich,"");
+	directorio[p2].dir_inodo=0xffff;
+	inodos->blq_inodos[directorio[p2].dir_inodo].size_fichero= 0;
+
 	return 0;
 }
 
@@ -160,7 +179,7 @@ int ComprobarComando(char* strcomando, char* orden, char* argumento1, char* argu
     char *token= strtok(strcomando, " ");
  
      if(strcmp(strcomando, " ")==0){
-         strcpy(strcomando, argumento1);
+         strcpy(strcomando, argumento1);				// MODIFICAR
         if(token != NULL){
             token(strtok(NULL, " "));
             strcpy(strcomando, argumento2);
@@ -170,6 +189,7 @@ int ComprobarComando(char* strcomando, char* orden, char* argumento1, char* argu
     }
     return 0;
 }
+
 
 
 void Procs_salir() {
@@ -208,26 +228,24 @@ int main() {
 	memcpy(&ext_blq_inodos, (EXT_BLQ_INODOS*)&datosfich[2], SIZE_BLOQUE);
 	memcpy(&memdatos, (EXT_DATOS*)&datosfich[4], MAX_BLOQUES_DATOS * SIZE_BLOQUE);
 	
- 
-     // Buce de tratamiento de comandos
-    for (;;){
-			do{
-			printf (">> ");
+  	for (;;) {
+		do {
+			printf(">> ");
 			fflush(stdin);
 			fgets(comando, LONGITUD_COMANDO, stdin);
-			}while (ComprobarComando(comando, orden, argumento1, argumento2) != 0);
+		} while (ComprobarComando(comando, orden, argumento1, argumento2) != 0);
 		    if (strcmp(orden,"dir")==0){
-	            Directorio(directorio, &ext_blq_inodos);
-	            continue;
+	           Directorio(directorio, &ext_blq_inodos);
+	           continue;
 			}
 			else if(strcmp(orden,"info")==0){
-				LeeSuperBloque(&ext_superblock);
+			    LeeSuperBloque(&ext_superblock);
 				continue;
-			}
+			 }
 	        else if(strcmp(orden,"bytemaps")==0){
 				Printbytemaps(&ext_bytemaps);
 				continue;
-			} 
+			}
 			else if(strcmp(orden,"rename")==0){
 				Renombrar(directorio, &ext_blq_inodos, argumento1, argumento2);
 				continue;
@@ -235,33 +253,33 @@ int main() {
 			else if(strcmp(orden,"imprimir")==0){
 				Imprimir(directorio, &ext_blq_inodos, memdatos, argumento1);
 				continue;
-			}			 
+			}
 			else if(strcmp(orden,"remove")==0){
 				Borrar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, argumento1,  fent);
 				continue;
-			}			 
+			}	 
 			else if(strcmp(orden,"copy")==0){
 				Copiar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, memdatos, argumento1, argumento2,  fent);
 				continue;
 			}
-			 /*
-	         // Escritura de metadatos en comandos rename, remove, copy     
-	         Grabarinodosydirectorio(&directorio,&ext_blq_inodos,fent);
-	         GrabarByteMaps(&ext_bytemaps,fent);
-	         GrabarSuperBloque(&ext_superblock,fent);
-	         if (grabardatos)
-	           GrabarDatos(&memdatos,fent);
-	         grabardatos = 0;
-	         //Si el comando es salir se habrán escrito todos los metadatos
-	         //faltan los datos y cerrar		*/
+		/*	// Escritura de metadatos en comandos rename, remove, copy     
+			Grabarinodosydirectorio(&directorio, &ext_blq_inodos, fent);			// check
+			GrabarByteMaps(&ext_bytemaps, fent);
+			GrabarSuperBloque(&ext_superblock, fent);
+			if (grabardatos)
+				GrabarDatos(&memdatos, fent);
+			grabardatos = 0;
+			//Si el comando es salir se habrÃ¡n escrito todos los metadatos
+			//faltan los datos y cerrar */
 	        else if (strcmp(orden,"salir")==0){
 	            //GrabarDatos(&memdatos,fent);
 	            fclose(fent);
-	            return 0;
+	       	    return 0;
 	        }
 			else{
 				printf("ERROR: Comando ilegal [info, bytemaps, dir, rename, imprimir, remove, copy, salir]\n");
 				continue;
-		}
-    }
+			} 
+	}
 }
+ 
