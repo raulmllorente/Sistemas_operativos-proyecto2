@@ -7,12 +7,12 @@
 void Printbytemaps(EXT_BYTE_MAPS *ext_bytemaps);
 int ComprobarComando(char *strcomando, char *orden, char *argumento1, char *argumento2);
 void LeeSuperBloque(EXT_SIMPLE_SUPERBLOCK *psup);
-int BuscaFich(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, 
+int BuscaFich(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos,
               char *nombre);
 void Directorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos);
-int Renombrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, 
+int Renombrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos,
               char *nombreantiguo, char *nombrenuevo);
-int Imprimir(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, 
+int Imprimir(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos,
              EXT_DATOS *memdatos, char *nombre);
 int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos,
            EXT_BYTE_MAPS *ext_bytemaps, EXT_SIMPLE_SUPERBLOCK *ext_superblock,
@@ -33,7 +33,7 @@ int  BuscaFich(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombre
 		if (strcmp(nombre,directorio[x].dir_nfich)==0) {
 			p=x;
 		}
-	} 
+	}
 	return p;
 }
 
@@ -81,18 +81,18 @@ int Renombrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombrea
 	int p1=BuscaFich(directorio, inodos,nombreantiguo);
 	int p2=BuscaFich(directorio, inodos,nombrenuevo);
 
-	if(p1==0){		  
+	if(p1==0){
 		printf("ERROR: Fichero %s no encontrado\n", nombreantiguo);
 		return -1;
 	}
-	
-	if(p2!=0){		 
+
+	if(p2!=0){
 		printf("ERROR: El fichero  %s ya existe \n", nombrenuevo);
 		return -1;
 	}
-		
+
 	strcpy(directorio[p1].dir_nfich, nombrenuevo);
-	return 0; 
+	return 0;
 }
 
 
@@ -107,14 +107,13 @@ int Imprimir(EXT_ENTRADA_DIR* directorio, EXT_BLQ_INODOS* inodos, EXT_DATOS* mem
 		printf("ERROR: Fichero %s no encontrado\n", nombre);
 		return -1;
 	}
- 
+
 	for (x = 0; x < MAX_NUMS_BLOQUE_INODO && inodos->blq_inodos[directorio[p1].dir_inodo].i_nbloque[x] != 0xffff; x++) {
-						// añadir los datos 
+						// añadir los datos
 	}
 
 	memcpy(&texto[x], "\0", 1);
 	puts(texto);
-	
 	return 0;
 }
 
@@ -155,17 +154,17 @@ int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *e
 	int p2=BuscaFich(directorio, inodos,nombre);
 	int x,j;
 	int w=0;
-	
+
 	if(p2==0){
-		printf("\n ERROR: Fichero %s no encontrado", nombre);	
+		printf("\n ERROR: Fichero %s no encontrado", nombre);
 		return -1;
 	}
 																						// MODIFICAR
 	ext_bytemaps->bmap_inodos[directorio[p2].dir_inodo]=0;
 	for(j=0; j<MAX_NUMS_BLOQUE_INODO && inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[x] != 0xffff ; j++){		// bytemaps de bloques 
-		w=inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j]; 
-		ext_bytemaps->bmap_bloques[w]=0;		
-		inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j]=0xffff;								
+		w=inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j];
+		ext_bytemaps->bmap_bloques[w]=0;
+		inodos->blq_inodos[directorio[p2].dir_inodo].i_nbloque[j]=0xffff;
 	}
 	strcpy(&directorio[p2].dir_nfich,"");
 	directorio[p2].dir_inodo=0xffff;
@@ -176,17 +175,19 @@ int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *e
 
 
 int ComprobarComando(char* strcomando, char* orden, char* argumento1, char* argumento2) { // strcomando todo lo que pasa al buffer
-    char *token= strtok(strcomando, " ");
- 
+    char* delim;
+    delim = strtok(strcomando, "\n");
+
      if(strcmp(strcomando, " ")==0){
-         strcpy(strcomando, argumento1);				// MODIFICAR
-        if(token != NULL){
-            token(strtok(NULL, " "));
-            strcpy(strcomando, argumento2);
+         strcpy(argumento1, delim);
+        if(delim != NULL){
+            delim = strtok(NULL, " ");
+            strcpy(argumento2, delim);
         }
     }else {
-        strcpy(strcomando, orden);
+        strcpy(orden, delim);
     }
+
     return 0;
 }
 
@@ -227,8 +228,8 @@ int main() {
 	memcpy(&ext_bytemaps, (EXT_BLQ_INODOS*)&datosfich[1], SIZE_BLOQUE);
 	memcpy(&ext_blq_inodos, (EXT_BLQ_INODOS*)&datosfich[2], SIZE_BLOQUE);
 	memcpy(&memdatos, (EXT_DATOS*)&datosfich[4], MAX_BLOQUES_DATOS * SIZE_BLOQUE);
-	
-  	for (;;) {
+
+  	for(;;) {
 		do {
 			printf(">> ");
 			fflush(stdin);
@@ -257,12 +258,12 @@ int main() {
 			else if(strcmp(orden,"remove")==0){
 				Borrar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, argumento1,  fent);
 				continue;
-			}	 
+			}
 			else if(strcmp(orden,"copy")==0){
 				Copiar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, memdatos, argumento1, argumento2,  fent);
 				continue;
 			}
-		/*	// Escritura de metadatos en comandos rename, remove, copy     
+		/*	// Escritura de metadatos en comandos rename, remove, copy
 			Grabarinodosydirectorio(&directorio, &ext_blq_inodos, fent);			// check
 			GrabarByteMaps(&ext_bytemaps, fent);
 			GrabarSuperBloque(&ext_superblock, fent);
@@ -279,7 +280,6 @@ int main() {
 			else{
 				printf("ERROR: Comando ilegal [info, bytemaps, dir, rename, imprimir, remove, copy, salir]\n");
 				continue;
-			} 
+			}
 	}
 }
- 
